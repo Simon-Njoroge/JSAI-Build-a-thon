@@ -2,9 +2,7 @@ import ModelClient from "@azure-rest/ai-inference";
 import { AzureKeyCredential } from "@azure/core-auth";
 import dotenv from "dotenv";
 dotenv.config();
-// This code snippet demonstrates how to use the Azure AI Inference SDK to send a chat completion request
-// to a model hosted on Azure. It sets up the client, prepares the request with messages, and sends it.
-// Make sure to replace YOUR_KEY_HERE with your actual Azure Inference SDK key.
+
   const client = new ModelClient(
   process.env.AZURE_INFERENCE_SDK_ENDPOINT ?? "https://aistudioaiservices583071873776.services.ai.azure.com/models", new AzureKeyCredential(process.env.AZURE_INFERENCE_SDK_KEY ?? "YOUR_KEY_HERE"));
 
