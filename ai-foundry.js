@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
   const client = new ModelClient(
-  process.env.AZURE_INFERENCE_SDK_ENDPOINT ?? "https://aistudioaiservices583071873776.services.ai.azure.com/models", new AzureKeyCredential(process.env.AZURE_INFERENCE_SDK_KEY ?? "YOUR_KEY_HERE"));
+  process.env.AZURE_INFERENCE_SDK_ENDPOINT ?? "https://mukir-mc94t90w-eastus2.services.ai.azure.com/models", new AzureKeyCredential(process.env.AZURE_INFERENCE_SDK_KEY ));
 
 
 var messages = [
@@ -20,7 +20,7 @@ var response = await client.path("chat/completions").post({
       top_p: 0.1,
       presence_penalty: 0,
       frequency_penalty: 0,
-      model: "Llama-4-Maverick-17B-128E-Instruct-FP8",
+      model: "gpt-40",
   },
 });
 
