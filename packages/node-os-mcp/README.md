@@ -1,1 +1,0 @@
-# Node OS MCP Agent
