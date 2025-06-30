@@ -29,8 +29,10 @@ jobs:
       - id: get_step
         run: |
           echo "Current step file contents:" && cat ./.github/steps/-step.txt
-          step=$(cat ./.github/steps/-step.txt | tr -d '\r\n')
+          step=$(cat ./.github/steps/-step.txt | tr -d '\r\n ')
+          echo "::notice::Step value after strip: '$step'"
           echo "current_step=$step" >> $GITHUB_OUTPUT
+        shell: bash
     outputs:
       current_step: ${{ steps.get_step.outputs.current_step }}
 
