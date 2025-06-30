@@ -29,7 +29,7 @@ This is a sample MCP Server in TypeScript implementing weather tools with mock r
 
 ## How to debug the Weather MCP Server
 
-> Notes
+> Notes:
 > - [MCP Inspector](https://github.com/modelcontextprotocol/inspector) is a visual developer tool for testing and debugging MCP servers.
 > - All debugging modes support breakpoints, so you can add breakpoints to the tool implementation code.
 

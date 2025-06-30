@@ -36,13 +36,6 @@ jobs:
     outputs:
       current_step: ${{ steps.get_step.outputs.current_step }}
 
-      - id: get_step
-        run: |
-          step=$(cat ./.github/steps/-step.txt)
-          echo "current_step=$step" >> $GITHUB_OUTPUT
-    outputs:
-      current_step: ${{ steps.get_step.outputs.current_step }}
-
   on_node_os_mcp_directory:
     name: On addition of node-os-mcp directory
     needs: get_current_step
