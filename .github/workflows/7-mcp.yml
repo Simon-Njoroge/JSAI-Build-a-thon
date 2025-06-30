@@ -19,6 +19,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Show current directory and files (debug)
+        run: |
+          pwd
+          ls -al .
+          ls -al ./packages
+          ls -al ./packages/node-os-mcp
+
+      - id: get_step
+        run: |
+          echo "Current step file contents:" && cat ./.github/steps/-step.txt
+          step=$(cat ./.github/steps/-step.txt | tr -d '\r\n')
+          echo "current_step=$step" >> $GITHUB_OUTPUT
+    outputs:
+      current_step: ${{ steps.get_step.outputs.current_step }}
+
       - id: get_step
         run: |
           step=$(cat ./.github/steps/-step.txt)
