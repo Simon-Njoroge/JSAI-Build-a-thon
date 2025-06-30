@@ -2,8 +2,6 @@ name: Step 7 - Connect Agent to MCP Tools
 
 on:
   push:
-    paths:
-      - "packages/node-os-mcp/**"
     branches:
       - main
     paths:
