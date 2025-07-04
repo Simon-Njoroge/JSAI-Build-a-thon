@@ -19,7 +19,19 @@ const sessionMemories = {};
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
-const pdfPath = path.join(projectRoot, "data/ComputerScienceOne.pdf");
+// Use disease PDFs for medical assistant
+const diseasePdfDir = path.join(projectRoot, "assistance/data");
+const diseasePdfs = [
+  "covid.pdf",
+  "chickenpox.pdf",
+  "Strep Throat.pdf",
+  "pneumonia.pdf",
+  "Measles.pdf",
+  "malaria.pdf",
+  "hbp.pdf",
+  "flu.pdf",
+  "diabetes.pdf"
+].map(f => path.join(diseasePdfDir, f));
 
 const app = express();
 app.use(cors());
@@ -35,31 +47,30 @@ const chatModel = new AzureChatOpenAI({
 });
 
 // Load and parse the PDF file
-let pdfText = null;
-let pdfChunks = [];
+let pdfTexts = {};
+let pdfChunks = {};
 const CHUNK_SIZE = 800;
 
-async function loadPDF() {
-  if (pdfText) return pdfText;
-
-  if (!fs.existsSync(pdfPath)) return "PDF not found.";
-
-  const dataBuffer = fs.readFileSync(pdfPath);
-  const data = await pdfParse(dataBuffer);
-  pdfText = data.text;
-  let currentChunk = "";
-  const words = pdfText.split(/\s+/);
-
-  for (const word of words) {
-    if ((currentChunk + " " + word).length <= CHUNK_SIZE) {
-      currentChunk += (currentChunk ? " " : "") + word;
-    } else {
-      pdfChunks.push(currentChunk);
-      currentChunk = word;
+async function loadPDFs() {
+  for (const pdfPath of diseasePdfs) {
+    if (pdfTexts[pdfPath]) continue;
+    if (!fs.existsSync(pdfPath)) continue;
+    const dataBuffer = fs.readFileSync(pdfPath);
+    const data = await pdfParse(dataBuffer);
+    pdfTexts[pdfPath] = data.text;
+    let currentChunk = "";
+    const words = data.text.split(/\s+/);
+    pdfChunks[pdfPath] = [];
+    for (const word of words) {
+      if ((currentChunk + " " + word).length <= CHUNK_SIZE) {
+        currentChunk += (currentChunk ? " " : "") + word;
+      } else {
+        pdfChunks[pdfPath].push(currentChunk);
+        currentChunk = word;
+      }
     }
+    if (currentChunk) pdfChunks[pdfPath].push(currentChunk);
   }
-  if (currentChunk) pdfChunks.push(currentChunk);
-  return pdfText;
 }
 
 function getSessionMemory(sessionId) {
@@ -77,29 +88,34 @@ function getSessionMemory(sessionId) {
 function retrieveRelevantContent(query) {
   const queryTerms = query
     .toLowerCase()
-    .split(/\s+/) // Converts query to relevant search terms
+    .split(/\s+/)
     .filter((term) => term.length > 3)
     .map((term) => term.replace(/[.,?!;:()"']/g, ""));
 
   if (queryTerms.length === 0) return [];
-  const scoredChunks = pdfChunks.map((chunk) => {
-    const chunkLower = chunk.toLowerCase();
-    let score = 0;
-    for (const term of queryTerms) {
-      const regex = new RegExp(term, "gi");
-      const matches = chunkLower.match(regex);
-      if (matches) score += matches.length;
-    }
-    return { chunk, score };
-  });
-  return scoredChunks
+  let allScored = [];
+  for (const [pdfPath, chunks] of Object.entries(pdfChunks)) {
+    const scoredChunks = chunks.map((chunk) => {
+      const chunkLower = chunk.toLowerCase();
+      let score = 0;
+      for (const term of queryTerms) {
+        const regex = new RegExp(term, "gi");
+        const matches = chunkLower.match(regex);
+        if (matches) score += matches.length;
+      }
+      return { chunk, score, source: path.basename(pdfPath) };
+    });
+    allScored = allScored.concat(scoredChunks);
+  }
+  return allScored
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
-    .map((item) => item.chunk);
+    .map((item) => `[${item.source}]: ${item.chunk}`);
 }
 
-app.post("/chat", async (req, res) => {
+
+app.post("/medical-chat", async (req, res) => {
   const userMessage = req.body.message;
   const useRAG = req.body.useRAG === undefined ? true : req.body.useRAG;
   const sessionId = req.body.sessionId || "default";
@@ -110,7 +126,7 @@ app.post("/chat", async (req, res) => {
   const memoryVars = await memory.loadMemoryVariables({});
 
   if (useRAG) {
-    await loadPDF();
+    await loadPDFs();
     sources = retrieveRelevantContent(userMessage);
   }
 
@@ -119,12 +135,12 @@ app.post("/chat", async (req, res) => {
     ? {
         role: "system",
         content: sources.length > 0
-          ? `You are a helpful assistant for Contoso Electronics. You must ONLY use the information provided below to answer.\n\n--- EMPLOYEE HANDBOOK EXCERPTS ---\n${sources.join('\n\n')}\n--- END OF EXCERPTS ---`
-          : `You are a helpful assistant for Contoso Electronics. The excerpts do not contain relevant information for this question. Reply politely: \"I'm sorry, I don't know. The employee handbook does not contain information about that.\"`,
+          ? `You are a medical assistant. You help users understand possible causes of their symptoms and provide general information about diseases and common treatments. Always remind users that this is not medical advice and to consult a healthcare professional for diagnosis and treatment.\n\n--- DISEASE INFORMATION EXCERPTS ---\n${sources.join('\n\n')}\n--- END OF EXCERPTS ---`
+          : `You are a medical assistant. The excerpts do not contain relevant information for this question. Reply politely: \"I'm sorry, I don't know. The disease information does not contain information about that.\"`,
       }
     : {
         role: "system",
-        content: "You are a helpful and knowledgeable assistant. Answer the user's questions concisely and informatively.",
+        content: "You are a medical assistant. Answer the user's questions concisely and informatively. Always remind users this is not medical advice.",
       };
 
   try {
